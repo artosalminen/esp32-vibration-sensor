@@ -1,0 +1,110 @@
+# ============================================================================
+# Dartboard impact sensor — AZ-Delivery ESP board + CJMCU-ADXL345
+# ============================================================================
+#
+# IMPORTANT FINDING: ESPHome has no official/native ADXL345 component, and
+# the old "custom component" (platform: custom + includes:) mechanism was
+# removed from ESPHome in 2025. This config works around both by reading the
+# ADXL345's raw I2C registers directly inside a template sensor lambda,
+# using ESPHome's built-in i2c::I2CDevice class. No external libraries or
+# external_components needed — just this file.
+#
+# WIRING (CJMCU-ADXL345 breakout -> ESP board):
+#   VCC -> 3V3
+#   GND -> GND
+#   SDA -> SDA pin (see i2c: block below)
+#   SCL -> SCL pin (see i2c: block below)
+#   SDO -> leave floating or tie to GND  -> I2C address 0x53 (used below)
+#          (tying SDO to VCC instead gives address 0x1D — change below if so)
+#   CS  -> tie to VCC (selects I2C mode, not SPI)
+#
+# Uncomment ONE of the two board blocks below depending on which AZ-Delivery
+# board you're using, and adjust the sda/scl pins if you wired it differently.
+# ============================================================================
+
+esphome:
+  name: dartboard-sensor
+  friendly_name: Dartboard Impact Sensor
+
+# ---- Option A: AZ-Delivery NodeMCU / Wemos D1 Mini (ESP8266) --------------
+esp8266:
+  board: nodemcuv2   # use "d1_mini" if you have the Wemos D1 Mini form factor
+
+# ---- Option B: AZ-Delivery ESP32 Dev Kit C (ESP32) ------------------------
+# esp32:
+#   board: esp32dev
+#   framework:
+#     type: arduino
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+api:
+  encryption:
+    key: !secret dartboard_api_key
+
+ota:
+  platform: esphome
+  password: !secret dartboard_ota_password
+
+logger:
+
+i2c:
+  id: bus_a
+  sda: GPIO4   # "D2" on NodeMCU. For ESP32 use GPIO21 (default SDA).
+  scl: GPIO5   # "D1" on NodeMCU. For ESP32 use GPIO22 (default SCL).
+  scan: true   # logs detected I2C addresses at boot — handy to confirm 0x53
+
+sensor:
+  # Reads the ADXL345 over I2C every 50ms and publishes the total
+  # acceleration magnitude in g. At rest (board hanging still) this reads
+  # ~1.0g; a dart hitting the board causes a brief spike well above that.
+  - platform: template
+    name: "Dartboard Impact Magnitude"
+    id: impact_magnitude
+    unit_of_measurement: "g"
+    accuracy_decimals: 2
+    # Leave this visible (internal: false, the default) at first so you can
+    # watch real values in Home Assistant while throwing darts and calibrate
+    # the threshold below. Once you've picked a threshold, you can set
+    # "internal: true" to hide it from the HA entity list if you like.
+    update_interval: 50ms
+    lambda: |-
+      static i2c::I2CDevice dev;
+      static bool initialized = false;
+      if (!initialized) {
+        dev.set_i2c_bus(id(bus_a));
+        dev.set_i2c_address(0x53);          // change to 0x1D if SDO is tied to VCC
+        dev.write_byte(0x2D, 0x08);         // POWER_CTL: enable measurement mode
+        dev.write_byte(0x31, 0x0B);         // DATA_FORMAT: full resolution, +-16g range
+        initialized = true;
+      }
+      uint8_t data[6];
+      if (dev.read_bytes(0x32, data, 6)) {  // DATAX0..DATAZ1, auto-increment read
+        int16_t raw_x = (int16_t)((data[1] << 8) | data[0]);
+        int16_t raw_y = (int16_t)((data[3] << 8) | data[2]);
+        int16_t raw_z = (int16_t)((data[5] << 8) | data[4]);
+        // Full-resolution mode: fixed 3.9 mg/LSB scale factor regardless of range
+        float x = raw_x * 0.0039f;
+        float y = raw_y * 0.0039f;
+        float z = raw_z * 0.0039f;
+        return sqrtf(x * x + y * y + z * z);
+      }
+      return {};
+
+binary_sensor:
+  # Fires "on" whenever the magnitude sensor spikes above the threshold,
+  # and holds "on" for 300ms so Home Assistant sees one clean pulse per
+  # hit instead of it flickering across a couple of 50ms poll cycles.
+  - platform: template
+    name: "Dartboard Hit"
+    id: dartboard_hit
+    device_class: vibration
+    lambda: |-
+      // TUNE THIS THRESHOLD after watching "Dartboard Impact Magnitude" in HA:
+      // pick a value clearly above resting noise (~1.0-1.5g) and clearly
+      // below a real dart impact spike.
+      return id(impact_magnitude).state > 3.0;
+    filters:
+      - delayed_off: 300ms
