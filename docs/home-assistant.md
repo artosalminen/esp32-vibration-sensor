@@ -24,7 +24,7 @@ You'll then have these entities:
 (Home Assistant usually prefixes these with the device name, e.g.
 `binary_sensor.dartboard_impact_sensor_dartboard_hit`. Check the real IDs
 under **Settings > Devices & Services > Entities** and adjust the
-automation YAML in `homeassistant/dartboard_light.yaml` to match.)
+automations in `homeassistant/` to match.)
 
 ## 2. Calibrate
 
@@ -61,6 +61,8 @@ no helpers:
    display turn off. The mood light stays on. This also applies if the
    lights were switched on by hand and nobody played.
 
-Both are in `homeassistant/dartboard_light.yaml`. Replace the placeholder
+Each is its own file, ready to paste into the automation editor's YAML
+mode: `homeassistant/darts_lights_on.yaml` and
+`homeassistant/darts_lights_off.yaml`. Replace the placeholder
 `light.darts_mood_light` with your mood light's entity ID, and check the
 other IDs against **Settings > Devices & Services > Entities**.

@@ -42,8 +42,9 @@ set the detection threshold with the board's BOOT button.
   time over USB and every time after that over WiFi/OTA
 - `docs/home-assistant.md` — connecting the device to Home Assistant,
   calibrating the impact threshold, and the automation logic
-- `homeassistant/dartboard_light.yaml`: the two light automations, ready to
-  paste into Home Assistant
+- `homeassistant/darts_lights_on.yaml`, `homeassistant/darts_lights_off.yaml`:
+  the two light automations, each ready to paste into Home Assistant's
+  automation editor (Edit in YAML)
 
 ## Hardware used
 

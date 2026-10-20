@@ -1,0 +1,51 @@
+# Darts: board light and display off after 15 min without hits
+# (mood light stays on).
+#
+# Paste into Settings > Automations & Scenes > Create Automation >
+# (three-dot menu) > Edit in YAML, replacing everything in the editor.
+# To use automations.yaml instead, indent this under "- id: darts_lights_off_after_15_min_idle".
+#
+# The P300 outlets also have their own auto-off timers
+# (switch.office_darts_*_auto_off_enabled). Leave those disabled, or set
+# them longer than 15 minutes, so they don't switch off mid-game.
+
+alias: "Darts: board light and display off after 15 min without hits"
+description: >
+  Turns off the board light and display once 15 minutes have passed
+  without a hit. The mood light is left on. Also covers the lights being
+  switched on by hand and then never played under.
+mode: single
+triggers:
+  # 15 minutes after the last hit
+  - trigger: state
+    entity_id: binary_sensor.dartboard_impact_sensor_dartboard_hit
+    to: "off"
+    for: "00:15:00"
+  # Lights switched on manually and left on for 15 minutes
+  - trigger: state
+    entity_id:
+      - switch.office_p300_darts_board_light
+      - switch.office_p300_darts_display
+    to: "on"
+    for: "00:15:00"
+conditions:
+  # No hit in the last 15 minutes
+  - condition: state
+    entity_id: binary_sensor.dartboard_impact_sensor_dartboard_hit
+    state: "off"
+    for: "00:15:00"
+  # Something is actually on
+  - condition: or
+    conditions:
+      - condition: state
+        entity_id: switch.office_p300_darts_board_light
+        state: "on"
+      - condition: state
+        entity_id: switch.office_p300_darts_display
+        state: "on"
+actions:
+  - action: switch.turn_off
+    target:
+      entity_id:
+        - switch.office_p300_darts_board_light
+        - switch.office_p300_darts_display

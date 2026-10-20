@@ -1,0 +1,44 @@
+# Darts: board light, display and mood light on after 3 hits in 30 s.
+#
+# Paste into Settings > Automations & Scenes > Create Automation >
+# (three-dot menu) > Edit in YAML, replacing everything in the editor.
+# To use automations.yaml instead, indent this under "- id: darts_lights_on_after_three_hits".
+#
+# light.darts_mood_light is a PLACEHOLDER: replace it with your mood light.
+
+alias: "Darts: lights on after 3 hits in 30 s"
+description: >
+  Turns on the board light, display and mood light when the dartboard is
+  hit three times within 30 seconds. The first hit starts the 30 s window;
+  the next two hits have to land before it runs out. A single knock or
+  bump therefore doesn't switch anything on.
+mode: single
+triggers:
+  - trigger: state
+    entity_id: binary_sensor.dartboard_impact_sensor_dartboard_hit
+    from: "off"
+    to: "on"
+actions:
+  # Hit 2, within 30 s of hit 1
+  - wait_for_trigger:
+      - trigger: state
+        entity_id: binary_sensor.dartboard_impact_sensor_dartboard_hit
+        from: "off"
+        to: "on"
+    timeout: "00:00:30"
+    continue_on_timeout: false
+  # Hit 3, within whatever is left of the same 30 s window
+  - wait_for_trigger:
+      - trigger: state
+        entity_id: binary_sensor.dartboard_impact_sensor_dartboard_hit
+        from: "off"
+        to: "on"
+    timeout:
+      seconds: "{{ wait.remaining | float(0) }}"
+    continue_on_timeout: false
+  - action: homeassistant.turn_on
+    target:
+      entity_id:
+        - switch.office_p300_darts_board_light
+        - switch.office_p300_darts_display
+        - light.darts_mood_light
