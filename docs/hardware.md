@@ -15,6 +15,8 @@
 
 ## Wiring: SW-420 → ESP32-C3
 
+<img width="536" height="326" alt="Screenshot 2026-10-20 at 9 39 05" src="https://github.com/user-attachments/assets/1437a8e8-64e0-495d-b326-1b858e2224f8" />
+
 | SW-420 pin | ESP32-C3 pin | Notes |
 |------------|--------------|-------|
 | VCC        | 3V3          | The module works from 3.3V to 5V. Use 3.3V so `DO` stays at a safe level for the ESP32-C3's GPIOs. |
