@@ -45,6 +45,11 @@ The status screen shows:
 +------------------------+
 ```
 
+The board has two buttons, **BOOT** and **RST**, and they're easy to mix up.
+RST reboots the board, which looks like the WiFi reconnecting because the
+screen shows "connecting" again. If a press doesn't open the threshold
+screen, you pressed RST, so use the other button.
+
 The BOOT button sets the hit threshold:
 
 - **First press** opens the threshold screen and changes nothing.

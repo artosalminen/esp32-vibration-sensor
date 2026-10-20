@@ -49,6 +49,10 @@ wifi:
   id: wifi_conn
   ssid: !secret wifi_ssid
   password: !secret wifi_password
+  # These small C3 boards have a poorly matched chip antenna: at full TX
+  # power they see the router fine but fail to associate ("Auth Expired").
+  # Capping output power fixes it.
+  output_power: 8.5dB
 
 api:
   id: api_server
@@ -60,6 +64,9 @@ ota:
   password: !secret dartboard_ota_password
 
 logger:
+  logs:
+    # pulse_counter logs every 100ms update at DEBUG; keep it quiet
+    pulse_counter: INFO
 
 globals:
   # millis() of the last detected hit, for the "HIT!" banner on the display

@@ -80,6 +80,13 @@ needed again if the device loses its WiFi connection entirely.
 - **Serial port never appears**: try another cable, since many USB-C
   cables are charge-only. Then use the BOOT + RST download-mode sequence
   from step 5.
+- **WiFi fails with "Auth Expired" despite a strong signal**: this is a
+  known antenna problem on these small ESP32-C3 boards at full transmit
+  power. The config already sets `output_power: 8.5dB` under `wifi:`. If it
+  still fails, try a lower value such as `8dB`. Also check that the network
+  is 2.4 GHz and that the SSID and password are correct.
+- **Home Assistant rejects the encryption key**: paste the key without the
+  quotes from `secrets.yaml`. See `home-assistant.md`.
 - **Display stays dark**: power-cycle the board by unplugging and
   replugging it. Some of these OLEDs only initialise cleanly from a cold
   start.

@@ -5,7 +5,15 @@
 Once the device has flashed and joined WiFi (see `flashing.md`), Home
 Assistant should auto-discover it under **Settings > Devices & Services**
 as a new ESPHome integration. Click **Configure** and paste in the API
-encryption key from `esphome/secrets.yaml`. You'll then have these entities:
+encryption key from `esphome/secrets.yaml`. Paste only the value, without
+the surrounding quotes. It is 44 characters and ends in `=`. On macOS you
+can copy it straight to the clipboard with:
+
+```sh
+sed -nE 's/^dartboard_api_key: *"?([^"]+)"?.*/\1/p' esphome/secrets.yaml | tr -d '\n' | pbcopy
+```
+
+You'll then have these entities:
 
 - `binary_sensor.dartboard_hit`: "on" briefly whenever a hit is detected
 - `sensor.vibration_pulses`: the highest SW-420 pulse count seen in any
