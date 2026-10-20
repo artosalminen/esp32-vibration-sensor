@@ -26,9 +26,9 @@ set the detection threshold with the board's BOOT button.
 3. The threshold can be set from the BOOT button and the display, or from
    Home Assistant, and it is kept across reboots. The module's
    potentiometer is a second, coarser sensitivity control.
-4. A Home Assistant automation turns the light on and (re)starts a
-   30-minute timer whenever a hit comes in. A second automation turns the
-   light off when that timer runs out with no further hits.
+4. Home Assistant automations turn the board light, display and mood light
+   on after three hits within 30 seconds, and turn the board light and
+   display off again after 15 minutes without a hit.
 
 ## Repo layout
 
@@ -42,8 +42,8 @@ set the detection threshold with the board's BOOT button.
   time over USB and every time after that over WiFi/OTA
 - `docs/home-assistant.md` — connecting the device to Home Assistant,
   calibrating the impact threshold, and the automation logic
-- `homeassistant/dartboard_light.yaml` — the timer helper + two
-  automations, ready to adapt to your own entity IDs
+- `homeassistant/dartboard_light.yaml`: the two light automations, ready to
+  paste into Home Assistant
 
 ## Hardware used
 

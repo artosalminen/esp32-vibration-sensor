@@ -50,18 +50,17 @@ If even a gentle hit fills the bar many times over, the potentiometer is
 set too sensitive. If real hits barely register, it isn't sensitive
 enough.
 
-## 3. The automation
+## 3. The automations
 
-The light logic itself is deliberately simple and lives entirely in Home
-Assistant (not on the ESP), using a `timer` helper:
+The light logic lives entirely in Home Assistant, not on the ESP, and needs
+no helpers:
 
-1. A hit turns the light on and (re)starts a 30-minute timer.
-2. Every subsequent hit restarts that timer, so the light stays on as long
-   as you keep playing.
-3. If the timer ever finishes (30 minutes pass with no hits), the light
-   turns off.
+1. **Lights on:** three hits within 30 seconds turn on the board light, the
+   display and the mood light. One knock or bump isn't enough.
+2. **Lights off:** after 15 minutes with no hits, the board light and the
+   display turn off. The mood light stays on. This also applies if the
+   lights were switched on by hand and nobody played.
 
-The ready-to-adapt version of this is in
-`homeassistant/dartboard_light.yaml` — see the comments at the top of that
-file for how to create the timer helper and where to swap in your real
-entity IDs (the binary sensor, your Tapo switch entity, and the timer).
+Both are in `homeassistant/dartboard_light.yaml`. Replace the placeholder
+`light.darts_mood_light` with your mood light's entity ID, and check the
+other IDs against **Settings > Devices & Services > Entities**.

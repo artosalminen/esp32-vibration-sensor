@@ -1,62 +1,96 @@
-# Example Home Assistant automations for the dartboard light.
+# Home Assistant automations for the dartboard lights.
 #
-# This is written as plain automation YAML so you can see the full logic.
-# You can either:
-#   a) paste each automation into Settings > Automations & Scenes >
-#      Create Automation > "Edit in YAML", one at a time, or
-#   b) if you manage automations.yaml directly, drop these into your
-#      automations list.
+# Paste each automation into Settings > Automations & Scenes > Create
+# Automation > "Edit in YAML", one at a time, or drop both into your
+# automations.yaml. No helpers needed.
 #
-# BEFORE USING: replace the placeholder entity IDs below with your real
-# ones:
-#   - binary_sensor.dartboard_hit         -> from the ESPHome device
-#   - switch.dartboard_light              -> your Tapo socket entity
-#   - timer.dartboard_light_timeout       -> the helper created below
+# Entities used:
+#   binary_sensor.dartboard_impact_sensor_dartboard_hit -> the ESPHome sensor
+#   switch.office_p300_darts_board_light                -> board light (Tapo P300)
+#   switch.office_p300_darts_display                    -> display (Tapo P300)
+#   light.darts_mood_light                              -> PLACEHOLDER: replace
+#                                                          with your mood light
 #
-# You also need a `timer` helper. Easiest way: Settings > Devices & Services
-# > Helpers > Create Helper > Timer, name it "Dartboard light timeout",
-# duration 00:30:00. Note the entity ID it gets (likely
-# timer.dartboard_light_timeout) and use that below. Alternatively, define
-# it in YAML under a `timer:` key in configuration.yaml:
-#
-# timer:
-#   dartboard_light_timeout:
-#     duration: "00:30:00"
-#     name: Dartboard light timeout
+# Note: the P300 outlets also have their own "auto off" timers
+# (switch.office_darts_*_auto_off_enabled). Leave those disabled, or set
+# them longer than 15 minutes, so they don't switch off mid-game.
 
-- id: dartboard_light_on_hit
-  alias: "Dartboard: turn on light and reset timeout"
+- id: darts_lights_on_after_three_hits
+  alias: "Darts: lights on after 3 hits in 30 s"
   description: >
-    Turns the dartboard light on whenever a hit is detected, and
-    (re)starts the 30-minute idle timer. Restarting an already-running
-    timer just pushes its end time out, so as long as you keep throwing,
-    the light stays on.
-  trigger:
-    - platform: state
-      entity_id: binary_sensor.dartboard_hit
+    Turns on the board light, display and mood light when the dartboard is
+    hit three times within 30 seconds. The first hit starts the 30 s window;
+    the next two hits have to land before it runs out. A single knock or
+    bump therefore doesn't switch anything on.
+  mode: single
+  triggers:
+    - trigger: state
+      entity_id: binary_sensor.dartboard_impact_sensor_dartboard_hit
+      from: "off"
       to: "on"
-  action:
-    - service: switch.turn_on
+  actions:
+    # Hit 2, within 30 s of hit 1
+    - wait_for_trigger:
+        - trigger: state
+          entity_id: binary_sensor.dartboard_impact_sensor_dartboard_hit
+          from: "off"
+          to: "on"
+      timeout: "00:00:30"
+      continue_on_timeout: false
+    # Hit 3, within whatever is left of the same 30 s window
+    - wait_for_trigger:
+        - trigger: state
+          entity_id: binary_sensor.dartboard_impact_sensor_dartboard_hit
+          from: "off"
+          to: "on"
+      timeout:
+        seconds: "{{ wait.remaining | float(0) }}"
+      continue_on_timeout: false
+    - action: homeassistant.turn_on
       target:
-        entity_id: switch.dartboard_light
-    - service: timer.start
-      target:
-        entity_id: timer.dartboard_light_timeout
-      # timer.start restarts the timer from its full duration if it's
-      # already running, which is exactly the "keep resetting on every
-      # throw" behaviour we want.
+        entity_id:
+          - switch.office_p300_darts_board_light
+          - switch.office_p300_darts_display
+          - light.darts_mood_light
 
-- id: dartboard_light_off_on_timeout
-  alias: "Dartboard: turn off light after 30 min idle"
+- id: darts_lights_off_after_15_min_idle
+  alias: "Darts: board light and display off after 15 min without hits"
   description: >
-    Turns the dartboard light off once the idle timer finishes without
-    being reset by another hit.
-  trigger:
-    - platform: event
-      event_type: timer.finished
-      event_data:
-        entity_id: timer.dartboard_light_timeout
-  action:
-    - service: switch.turn_off
+    Turns off the board light and display once 15 minutes have passed
+    without a hit. The mood light is left on. Also covers the lights being
+    switched on by hand and then never played under.
+  mode: single
+  triggers:
+    # 15 minutes after the last hit
+    - trigger: state
+      entity_id: binary_sensor.dartboard_impact_sensor_dartboard_hit
+      to: "off"
+      for: "00:15:00"
+    # Lights switched on manually and left on for 15 minutes
+    - trigger: state
+      entity_id:
+        - switch.office_p300_darts_board_light
+        - switch.office_p300_darts_display
+      to: "on"
+      for: "00:15:00"
+  conditions:
+    # No hit in the last 15 minutes
+    - condition: state
+      entity_id: binary_sensor.dartboard_impact_sensor_dartboard_hit
+      state: "off"
+      for: "00:15:00"
+    # Something is actually on
+    - condition: or
+      conditions:
+        - condition: state
+          entity_id: switch.office_p300_darts_board_light
+          state: "on"
+        - condition: state
+          entity_id: switch.office_p300_darts_display
+          state: "on"
+  actions:
+    - action: switch.turn_off
       target:
-        entity_id: switch.dartboard_light
+        entity_id:
+          - switch.office_p300_darts_board_light
+          - switch.office_p300_darts_display
