@@ -82,9 +82,13 @@ needed again if the device loses its WiFi connection entirely.
   from step 5.
 - **WiFi fails with "Auth Expired" despite a strong signal**: this is a
   known antenna problem on these small ESP32-C3 boards at full transmit
-  power. The config already sets `output_power: 8.5dB` under `wifi:`. If it
-  still fails, try a lower value such as `8dB`. Also check that the network
-  is 2.4 GHz and that the SSID and password are correct.
+  power. The config already sets `output_power: 8.5dB`,
+  `power_save_mode: none` and `fast_connect: true` under `wifi:`. The
+  ceramic antenna sits at the end opposite the USB-C port and is easily
+  detuned, so keep jumper wires, pin headers and breadboards away from it.
+  If the board still fails, try a lower `output_power` such as `8dB`. Also
+  check that the network is 2.4 GHz and that the SSID and password are
+  correct.
 - **Home Assistant rejects the encryption key**: paste the key without the
   quotes from `secrets.yaml`. See `home-assistant.md`.
 - **Display stays dark**: power-cycle the board by unplugging and

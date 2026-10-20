@@ -53,6 +53,10 @@ wifi:
   # power they see the router fine but fail to associate ("Auth Expired").
   # Capping output power fixes it.
   output_power: 8.5dB
+  # Also reported to help these boards stay associated: no modem sleep, and
+  # connect straight to the configured SSID instead of scanning first.
+  power_save_mode: none
+  fast_connect: true
 
 api:
   id: api_server
