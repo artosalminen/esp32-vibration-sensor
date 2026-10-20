@@ -34,27 +34,33 @@ for you automatically.
 
 In the ESPHome dashboard or ESPHome Web, choose "New Device", give it a
 name, then discard the wizard's generated YAML and paste in the contents
-of `esphome/vibration-sensor.yaml`. Uncomment whichever board block
-matches your AZ-Delivery board — the `esp8266`/`nodemcuv2` block, or the
-`esp32`/`esp32dev` block — and comment out the other one.
+of `esphome/vibration-sensor.yaml`. It already targets the diymore
+ESP32-C3 board (`esp32-c3-devkitm-1`), so no board selection is needed.
+The first compile needs internet access, because ESPHome downloads the
+Roboto font from Google Fonts for the display.
 
 ## 5. Connect via USB and flash
 
-Plug the ESP board in with a proper data USB cable. If the serial port
-doesn't show up, install the board's USB driver first — AZ-Delivery boards
-typically use either a CP2102 or CH340 chip, so grab the matching Silicon
-Labs CP210x or CH340 driver for your OS. Click **Install > "Plug into this
-computer"**, pick the serial port, and wait roughly 1-2 minutes for it to
-compile and flash. If it gets stuck at "Connecting...", hold the board's
-FLASH/BOOT button down for a couple of seconds right as it starts
-connecting.
+Plug the board in with a USB-C data cable. The ESP32-C3 has USB built
+in, so no driver is needed. It shows up as a "USB JTAG/serial debug unit"
+(on macOS `/dev/cu.usbmodem…`). Click **Install > "Plug into this
+computer"**, pick the serial port, and wait a few minutes for it to compile
+and flash.
+
+If no port shows up or flashing gets stuck at "Connecting...", put the
+chip into download mode: hold **BOOT**, tap **RST**, then release
+**BOOT**. Flash again, then press **RST** once it's done to start the new
+firmware. A blank chip, or one running firmware that turned off USB, often
+needs this on the first flash.
 
 ## 6. Verify it boots and joins WiFi
 
 Right after flashing, the dashboard shows live logs over the same USB
 connection. Check for:
 
-- The I2C scan line confirming address `0x53` was found
+- The OLED lighting up. The top row shows a WiFi ring that becomes a
+  filled dot once connected, and the same for HA once Home Assistant
+  connects.
 - A WiFi connected message
 - The API/OTA services starting
 
@@ -71,10 +77,16 @@ needed again if the device loses its WiFi connection entirely.
 
 ## Troubleshooting
 
-- **Serial port never appears**: missing USB driver (see step 5).
-- **Stuck at "Connecting..."**: hold FLASH/BOOT during the connect attempt.
-- **I2C scan doesn't show 0x53**: check wiring, especially SDA/SCL not
-  swapped, and that SDO is tied to GND (address 0x53) or VCC (address
-  0x1D, matching the address in the YAML).
-- **Impact sensor never trips / trips constantly**: recalibrate the
-  threshold in `esphome/vibration-sensor.yaml` — see `home-assistant.md`.
+- **Serial port never appears**: try another cable, since many USB-C
+  cables are charge-only. Then use the BOOT + RST download-mode sequence
+  from step 5.
+- **Display stays dark**: power-cycle the board by unplugging and
+  replugging it. Some of these OLEDs only initialise cleanly from a cold
+  start.
+- **Text is cut off or shifted**: a few batches of these boards map the
+  72x40 window differently. Try `offset_x:` / `offset_y:` on the `display:`
+  block, or as a last resort `model: "SH1106 128x64"` and draw inside the
+  visible window.
+- **Impact sensor never trips / trips constantly**: adjust the SW-420
+  potentiometer, then the hit threshold. See `hardware.md` and
+  `home-assistant.md`.

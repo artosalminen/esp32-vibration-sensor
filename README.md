@@ -1,40 +1,39 @@
-# ESP32/ESP8266 Vibration Sensor for Home Assistant
+# ESP32-C3 Vibration Sensor for Home Assistant
 
-A cheap ESP8266/ESP32 board plus an ADXL345 accelerometer, turned into a Home
-Assistant vibration/impact sensor via ESPHome. Built here to switch a
-dartboard light on the moment you start throwing and off again after 30
-minutes of no activity, but the sensor itself is generic: anything that
-needs an "impact just happened" trigger can use it.
+A diymore ESP32-C3 board with a built-in 0.42" OLED plus an SW-420
+vibration switch, turned into a Home Assistant vibration/impact sensor
+with ESPHome. Built here to switch a dartboard light on the moment you
+start throwing and off again after 30 minutes of no activity, but the
+sensor itself is generic. Anything that needs an "impact just happened"
+trigger can use it.
 
-## Why this exists
-
-ESPHome has no official ADXL345 component, and the old "custom component"
-trick (`platform: custom` + a hand-written `.h` file) was removed from
-ESPHome in 2025. This project works around both by reading the ADXL345's
-raw I2C registers directly inside an ESPHome template sensor lambda, using
-ESPHome's built-in `i2c::I2CDevice` class. No external libraries, no
-`external_components`, just the one YAML file in `esphome/`.
+The on-board display shows whether the device is connected to WiFi and
+Home Assistant, flashes **HIT!** when vibration is detected, and lets you
+set the detection threshold with the board's BOOT button.
 
 ## How it works
 
 ```
- CJMCU-ADXL345 --I2C--> ESP8266/ESP32 --WiFi/ESPHome API--> Home Assistant --> Tapo smart plug (light)
+ SW-420 --DO pulses--> ESP32-C3 (+OLED) --WiFi/ESPHome API--> Home Assistant --> Tapo smart plug (light)
 ```
 
-1. The ESP polls the ADXL345 over I2C every 50ms and publishes the total
-   acceleration magnitude (√(x²+y²+z²)) as a sensor. At rest it reads
-   ~1.0g; a dart hitting the board causes a sharp spike above that.
-2. A template binary sensor (`Dartboard Hit`) fires "on" whenever the
-   magnitude crosses a threshold you calibrate, with a short debounce so
-   Home Assistant sees one clean pulse per hit.
-3. A Home Assistant automation turns the light on and (re)starts a 30
-   minute timer whenever a hit comes in; a second automation turns the
+1. The SW-420's spring switch chatters when the board is hit and puts out
+   a burst of pulses on its `DO` pin. The ESP counts them in 100ms
+   windows.
+2. A window with at least **Hit Threshold** pulses counts as a hit. The
+   `Dartboard Hit` binary sensor goes "on" for 500ms, so Home Assistant
+   sees one clean pulse per hit.
+3. The threshold can be set from the BOOT button and the display, or from
+   Home Assistant, and it is kept across reboots. The module's
+   potentiometer is a second, coarser sensitivity control.
+4. A Home Assistant automation turns the light on and (re)starts a
+   30-minute timer whenever a hit comes in. A second automation turns the
    light off when that timer runs out with no further hits.
 
 ## Repo layout
 
-- `esphome/vibration-sensor.yaml` — the ESPHome device config (impact
-  magnitude sensor + debounced binary sensor)
+- `esphome/vibration-sensor.yaml`: the ESPHome device config (pulse
+  counting, hit detection, threshold, display and button UI)
 - `esphome/secrets.yaml.example` — template for the secrets ESPHome needs;
   copy to `secrets.yaml`, fill in your own values, never commit the real
   file (it's gitignored)
@@ -48,22 +47,22 @@ ESPHome's built-in `i2c::I2CDevice` class. No external libraries, no
 
 ## Hardware used
 
-- AZ-Delivery ESP8266 (NodeMCU/D1 Mini) or ESP32 Dev Kit
-- CJMCU-ADXL345 accelerometer breakout
+- [diymore ESP32-C3 dev board with 0.42" OLED](https://www.amazon.de/dp/B0DYV1TJQS)
+- [Hailege SW-420 vibration sensor module](https://www.amazon.de/dp/B07XJTNRD8)
 - A Tapo smart plug (e.g. P100/P110) exposed to Home Assistant, powering
   the dartboard light
 
-See `docs/hardware.md` for wiring and `docs/flashing.md` to get firmware
-onto the board.
+See `docs/hardware.md` for wiring and the display/button UI, and
+`docs/flashing.md` to get firmware onto the board.
 
 ## Status / calibration note
 
-The impact threshold in `esphome/vibration-sensor.yaml` (`> 3.0` g) is a
-starting point, not a guarantee — it depends on where you mount the
-accelerometer and how solid the board/cabinet is. Watch the
-`Dartboard Impact Magnitude` entity live in Home Assistant while throwing a
-few darts and while the room is quiet, then tune it. Details in
-`docs/home-assistant.md`.
+The default threshold (3 pulses per 100ms) is a starting point, not a
+guarantee. The right value depends on the potentiometer setting, where
+the module is mounted, and how solid the board or cabinet is. Watch the
+pulse bar on the display, or the `Vibration Pulses` entity in Home
+Assistant, while throwing a few darts and while the room is quiet, then
+adjust it with the BOOT button. Details are in `docs/home-assistant.md`.
 
 ## License
 
